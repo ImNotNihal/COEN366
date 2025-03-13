@@ -12,7 +12,7 @@ public class Server {
     private static final int PORT = 5000;
     private static Set<String> registeredClients = new HashSet<>();
 
-    static class ClientInfo {
+   static class ClientInfo {
         String name;
         String role;
         String ipAddress;
@@ -22,7 +22,7 @@ public class Server {
         ClientInfo(String name, String role, String ipAddress, int udpPort, int tcpPort) {
             this.name = name;
             this.role = role;
-            ipAddress;
+            this.ipAddress = ipAddress;
             this.udpPort = udpPort;
             this.tcpPort = tcpPort;
         }
