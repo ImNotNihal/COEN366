@@ -12,6 +12,22 @@ public class Server {
     private static final int PORT = 5000;
     private static Set<String> registeredClients = new HashSet<>();
 
+    static class ClientInfo {
+        String name;
+        String role;
+        String ipAddress;
+        int udpPort;
+        int tcpPort;
+
+        ClientInfo(String name, String role, String ipAddress, int udpPort, int tcpPort) {
+            this.name = name;
+            this.role = role;
+            ipAddress;
+            this.udpPort = udpPort;
+            this.tcpPort = tcpPort;
+        }
+    }
+
     public static void main(String[] args) {
         try (DatagramSocket socket = new DatagramSocket(PORT)) {
             byte[] buffer = new byte[1024];
