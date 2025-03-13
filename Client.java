@@ -7,30 +7,54 @@ package PeerToPeerProject366;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.Scanner;
+import java.io.IOException;
 
 public class Client {
     private static final String SERVER_ADDRESS = "localhost";
     private static final int SERVER_PORT = 5000;
 
-    public static void main(String[] args) {
-        try (DatagramSocket socket = new DatagramSocket()) {
-            InetAddress serverAddress = InetAddress.getByName(SERVER_ADDRESS);
+    public static void main(String[] args) throws IOException {
+        Scanner sc = new Scanner(System.in);
+        DatagramSocket ds = new DatagramSocket();
+        InetAddress ip = InetAddress.getByName(SERVER_ADDRESS);
+        byte[] buf = null;
 
-            // Register
-            String registerMessage = "REGISTER";
-            byte[] registerBuffer = registerMessage.getBytes();
-            DatagramPacket registerPacket = new DatagramPacket(registerBuffer, registerBuffer.length, serverAddress, SERVER_PORT);
-            socket.send(registerPacket);
-            System.out.println("Sent registration request");
+        // registration details
+        String rqNumber = "1";
+        String name = "JohnDoe";
+        String role = "buyer";
+        String ipAddress = ip.getHostAddress();
+        int udpPort = ds.getLocalPort();
+        int tcpPort = 6000;
 
-            // Deregister
-            String deregisterMessage = "DEREGISTER";
-            byte[] deregisterBuffer = deregisterMessage.getBytes();
-            DatagramPacket deregisterPacket = new DatagramPacket(deregisterBuffer, deregisterBuffer.length, serverAddress, SERVER_PORT);
-            socket.send(deregisterPacket);
-            System.out.println("Sent deregistration request");
-        } catch (Exception e) {
-            e.printStackTrace();
+        // register
+        String registerMessage = "REGISTER | " + rqNumber + " | " + name + " | " + role + " | " + ipAddress + " | " + udpPort + " | " + tcpPort;
+        buf = registerMessage.getBytes();
+        DatagramPacket DpSend = new DatagramPacket(buf, buf.length, ip, SERVER_PORT);
+        ds.send(DpSend);
+        System.out.println("Sent registration request");
+
+        // de-register
+        String deregisterMessage = "DE-REGISTER | " + rqNumber + " | " + name;
+        buf = deregisterMessage.getBytes();
+        DpSend = new DatagramPacket(buf, buf.length, ip, SERVER_PORT);
+        ds.send(DpSend);
+        System.out.println("Sent deregistration request");
+
+        while (true) {
+            String inp = sc.nextLine();
+
+            // convert string input into byte array
+            buf = inp.getBytes();
+
+            DpSend = new DatagramPacket(buf, buf.length, ip, SERVER_PORT);
+            ds.send(DpSend);
+
+            // break loop 
+            if (inp.equals("bye")) {
+                break;
+            }
         }
     }
 }
