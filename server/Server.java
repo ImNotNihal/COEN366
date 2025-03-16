@@ -1,13 +1,12 @@
 // Server is running, gets the message from the client, takes the IP/Path address of the client and suggests that the client has been registered or not
 
-package PeerToPeerProject366;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Map;
-import java.io.IOException;
 
 public class Server {
     private static final int PORT = 5000;
