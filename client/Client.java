@@ -18,43 +18,102 @@ public class Client {
         Scanner sc = new Scanner(System.in);
         DatagramSocket ds = new DatagramSocket();
         InetAddress ip = InetAddress.getByName(SERVER_ADDRESS);
-        byte[] buf = null;
-
-        // registration details
-        String rqNumber = "1";
-        String name = "JohnDoe";
-        String role = "buyer";
-        String ipAddress = ip.getHostAddress();
-        int udpPort = ds.getLocalPort();
-        int tcpPort = 6000;
-
-        // register
-        String registerMessage = "REGISTER | " + rqNumber + " | " + name + " | " + role + " | " + ipAddress + " | " + udpPort + " | " + tcpPort;
-        buf = registerMessage.getBytes();
-        DatagramPacket DpSend = new DatagramPacket(buf, buf.length, ip, SERVER_PORT);
-        ds.send(DpSend);
-        System.out.println("Sent registration request");
-
-        // de-register
-        String deregisterMessage = "DE-REGISTER | " + rqNumber + " | " + name;
-        buf = deregisterMessage.getBytes();
-        DpSend = new DatagramPacket(buf, buf.length, ip, SERVER_PORT);
-        ds.send(DpSend);
-        System.out.println("Sent deregistration request");
 
         while (true) {
-            String inp = sc.nextLine();
-
-            // convert string input into byte array
-            buf = inp.getBytes();
-
-            DpSend = new DatagramPacket(buf, buf.length, ip, SERVER_PORT);
-            ds.send(DpSend);
-
-            // break loop 
-            if (inp.equals("bye")) {
+            
+            System.out.print("Enter command (REGISTER, DE-REGISTER, LIST_ITEM or bye): ");
+            String cmd = sc.nextLine();
+            if (cmd.equalsIgnoreCase("bye")) {
                 break;
             }
+            if(cmd.equalsIgnoreCase("REGISTER")){
+
+                System.out.print("Enter RQ#: ");
+                String rqNumber = sc.nextLine();
+                System.out.print("Enter name: ");
+                String name = sc.nextLine();
+                System.out.print("Enter role: ");
+                String role = sc.nextLine();
+                String ipAddress = ip.getHostAddress();
+                int udpPort = ds.getLocalPort();
+                int tcpPort = udpPort + 1;
+
+                String rMessage = "REGISTER | " + rqNumber + " | " + name + " | " + role + " | " + ipAddress + " | " + udpPort + " | " + tcpPort;
+                byte[] buf = rMessage.getBytes();
+                DatagramPacket sendDatagramPacket = new DatagramPacket(buf, buf.length, ip, SERVER_PORT);
+                ds.send(sendDatagramPacket);
+
+                byte[] bufferReceiver = new byte[65535];
+                DatagramPacket receiveDatagramPacket = new DatagramPacket(bufferReceiver, bufferReceiver.length);
+                ds.receive(receiveDatagramPacket);
+
+                String response = data(bufferReceiver).toString();
+                System.out.println("Server response: " + response);
+
+            } else if (cmd.equalsIgnoreCase("DE-REGISTER")){
+
+                System.out.print("Enter RQ#: ");
+                String rqNumber = sc.nextLine();
+                System.out.print("Enter name: ");
+                String name = sc.nextLine();
+
+                String drMessage = "DE-REGISTER | " + rqNumber + " | " + name;
+                byte[] buf = drMessage.getBytes();
+                DatagramPacket sendDatagramPacket = new DatagramPacket(buf, buf.length, ip, SERVER_PORT);
+                ds.send(sendDatagramPacket);
+                System.out.println("Sent Deregistartion Request");
+
+            } else if (cmd.equalsIgnoreCase("LIST_ITEM")){
+
+                System.out.print("Enter RQ#: ");
+                String rqNumber = sc.nextLine();
+                System.out.print("Enter item name: ");
+                String itemName = sc.nextLine();
+                System.out.print("Enter item descrption: ");
+                String itemDescrip = sc.nextLine();
+                System.out.print("Enter starting price: ");
+                String startPrice = sc.nextLine();
+                System.out.print("Enter duration of auction (sec): ");
+                String auctDuration = sc.nextLine();
+
+                String liMessage = "LIST_ITEM | " + rqNumber + " | " + itemName + " | " + itemDescrip + " | " + startPrice + " | " + auctDuration;
+                byte[] buf = liMessage.getBytes();
+
+                DatagramPacket sendDatagramPacket = new DatagramPacket(buf, buf.length, ip, SERVER_PORT);
+                ds.send(sendDatagramPacket);
+                System.out.println("Sent LIST_ITEM request: " + liMessage);
+
+                byte[] bufferReceiver = new byte[65535];
+                DatagramPacket receiveDatagramPacket = new DatagramPacket(bufferReceiver, bufferReceiver.length);
+                ds.receive(receiveDatagramPacket);
+
+                String response = data(bufferReceiver).toString();
+                System.out.println("Server response: " + response);
+
+            }
+
+            }
+            
+            ds.close();
+        }
+
+        public static StringBuilder data(byte[] arr){
+
+            if(arr==null) return null;
+            StringBuilder ret = new StringBuilder();
+            int i =0;
+    
+            while(i < arr.length && arr[i] != 0){
+    
+                ret.append((char)arr[i]);
+                i++;
+    
+            }
+    
+            return ret;
+    
         }
     }
-}
+
+    
+

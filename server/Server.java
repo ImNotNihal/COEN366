@@ -11,6 +11,7 @@ import java.util.Map;
 public class Server {
     private static final int PORT = 5000;
     private static Map<String, ClientInfo> registeredClients = new HashMap<>();
+    private static Map<String, AuctionItem> currentAuctions = new HashMap<>();
 
     static class ClientInfo {
         String name;
@@ -28,20 +29,38 @@ public class Server {
         }
     }
 
+    static class AuctionItem{
+
+        String itemName;
+        String itemDescrip;
+        double startPrice;
+        int auctDuration;
+
+        AuctionItem(String itemName, String itemDescrip, double startPrice, int auctDuration){
+
+            this.itemName = itemName;
+            this.itemDescrip = itemDescrip;
+            this.startPrice = startPrice;
+            this.auctDuration = auctDuration;
+
+        }
+
+    }
+
     public static void main(String[] args) throws IOException {
         DatagramSocket ds = new DatagramSocket(PORT);
         byte[] receive = new byte[65535];
-        DatagramPacket DpReceive = null;
+        DatagramPacket receiveDatagramPacket = null;
 
         System.out.println("Server is running...");
 
         while (true) {
-            DpReceive = new DatagramPacket(receive, receive.length);
-            ds.receive(DpReceive);
+            receiveDatagramPacket = new DatagramPacket(receive, receive.length);
+            ds.receive(receiveDatagramPacket);
 
             String message = data(receive).toString();
-            InetAddress clientAddress = DpReceive.getAddress();
-            int clientPort = DpReceive.getPort();
+            InetAddress clientAddress = receiveDatagramPacket.getAddress();
+            int clientPort = receiveDatagramPacket.getPort();
 
             System.out.println("Received message: " + message);
 
@@ -70,29 +89,76 @@ public class Server {
                 }
             } else if (command.equals("DE-REGISTER")) {
                 String name = parts[2];
+                if(registeredClients.containsKey(name)){
                 registeredClients.remove(name);
                 System.out.println("Deregistered: " + name);
+                } else {
+                    System.out.println("Attempted to deregister non-existent user: " + name);
+                }
+
+            } else if (command.equals("LIST_ITEM")){
+
+                String itemName = parts[2];
+                String itemDescrip = parts[3];
+                double startPrice;
+                int auctDuration;
+
+                try{
+
+                    startPrice = Double.parseDouble(parts[4]);
+                    auctDuration = Integer.parseInt(parts[5]);
+
+                } catch (NumberFormatException e){
+
+                    String response = "LIST-DENIED | " + rqNumber + " | Invalid price or auction duration";
+                    DatagramPacket responsePacket = new DatagramPacket(response.getBytes(), response.length(),clientAddress, clientPort);
+                    ds.send(responsePacket);
+                    System.out.println("Invalid LIST_ITEM request: " + message);
+                    continue;
+
+                } if(currentAuctions.containsKey(itemName)){
+
+                    String response = "LIST-DENIED | " + rqNumber + " | Item already listed";
+                    DatagramPacket responsePacket = new DatagramPacket(response.getBytes(), response.length(), clientAddress, clientPort);
+                    ds.send(responsePacket);
+                    System.out.println("Item already listed: " + itemName);
+
+                } else {
+
+                    currentAuctions.put(itemName, new AuctionItem(itemName, itemDescrip, startPrice, auctDuration));
+                    String response = "ITEM_LISTED | " + rqNumber;
+                    DatagramPacket responsePacket = new DatagramPacket(response.getBytes(), response.length(), clientAddress, clientPort);
+                    ds.send(responsePacket);
+                    System.out.println("Item listed: " + itemName);
+
+                }
+
+            }
+            
+            else {
+                System.out.println("Invalid command received.");
             }
 
-            // clear buffer
             receive = new byte[65535];
 
-            if (message.equals("bye")) {
-                System.out.println("Client sent bye.....EXITING");
-                break;
-            }
         }
     }
 
     // convert byte array data into a string representation
-    public static StringBuilder data(byte[] a) {
-        if (a == null) return null;
+    public static StringBuilder data(byte[] arr){
+
+        if(arr==null) return null;
         StringBuilder ret = new StringBuilder();
-        int i = 0;
-        while (i < a.length && a[i] != 0) {
-            ret.append((char) a[i]);
+        int i =0;
+
+        while(i < arr.length && arr[i] != 0){
+
+            ret.append((char)arr[i]);
             i++;
+
         }
+
         return ret;
+
     }
 }
