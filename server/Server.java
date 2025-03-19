@@ -119,6 +119,11 @@ public class Server {
                     String response = "ITEM_LISTED | " + rqNumber;
                     sendUDPMessage(response, clientAddress, clientPort, ds);
                     System.out.println("Item listed: " + itemName);
+
+                    
+                    // Notify all subscribed clients about the new auction
+                    SubscriptionManager.notifySubscribers(itemName, currentAuctions.get(itemName), ds);
+
                 }
 
             } else if (command.equals("BID")) {
