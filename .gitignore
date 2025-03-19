@@ -1,0 +1,16 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+
+# Ignore IntelliJ project files
+.idea/
+*.iml
+
+# Ignore compiled Java class files
+*.class
+out/
+production/
+
+# Ignore log files
+*.log
+
