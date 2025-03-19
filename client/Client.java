@@ -1,8 +1,6 @@
-// practice for registration/de-registration to the server. the console only reads that the message has been received and reigstered, and same thing when the message received is de-registered
+// practice for registration/de-registration to the server. the console only reads that the message has been received and registered, and same thing when the message received is de-registered
 // usage of DatagramSocket used to send/receive datagram packets
 // Creation of DatagramPacket: creates the packet for sending/receiving data
-
-
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -20,14 +18,14 @@ public class Client {
         InetAddress ip = InetAddress.getByName(SERVER_ADDRESS);
 
         while (true) {
-            
-            System.out.print("Enter command (REGISTER, DE-REGISTER, LIST_ITEM or bye): ");
+
+            System.out.print("Enter command (REGISTER, DE-REGISTER, LIST_ITEM, BID, or bye): ");
             String cmd = sc.nextLine();
             if (cmd.equalsIgnoreCase("bye")) {
                 break;
             }
-            if(cmd.equalsIgnoreCase("REGISTER")){
 
+            if(cmd.equalsIgnoreCase("REGISTER")) {
                 System.out.print("Enter RQ#: ");
                 String rqNumber = sc.nextLine();
                 System.out.print("Enter name: ");
@@ -39,37 +37,23 @@ public class Client {
                 int tcpPort = udpPort + 1;
 
                 String rMessage = "REGISTER | " + rqNumber + " | " + name + " | " + role + " | " + ipAddress + " | " + udpPort + " | " + tcpPort;
-                byte[] buf = rMessage.getBytes();
-                DatagramPacket sendDatagramPacket = new DatagramPacket(buf, buf.length, ip, SERVER_PORT);
-                ds.send(sendDatagramPacket);
+                sendUDPMessage(rMessage, ds, ip);
 
-                byte[] bufferReceiver = new byte[65535];
-                DatagramPacket receiveDatagramPacket = new DatagramPacket(bufferReceiver, bufferReceiver.length);
-                ds.receive(receiveDatagramPacket);
-
-                String response = data(bufferReceiver).toString();
-                System.out.println("Server response: " + response);
-
-            } else if (cmd.equalsIgnoreCase("DE-REGISTER")){
-
+            } else if (cmd.equalsIgnoreCase("DE-REGISTER")) {
                 System.out.print("Enter RQ#: ");
                 String rqNumber = sc.nextLine();
                 System.out.print("Enter name: ");
                 String name = sc.nextLine();
 
                 String drMessage = "DE-REGISTER | " + rqNumber + " | " + name;
-                byte[] buf = drMessage.getBytes();
-                DatagramPacket sendDatagramPacket = new DatagramPacket(buf, buf.length, ip, SERVER_PORT);
-                ds.send(sendDatagramPacket);
-                System.out.println("Sent Deregistartion Request");
+                sendUDPMessage(drMessage, ds, ip);
 
-            } else if (cmd.equalsIgnoreCase("LIST_ITEM")){
-
+            } else if (cmd.equalsIgnoreCase("LIST_ITEM")) {
                 System.out.print("Enter RQ#: ");
                 String rqNumber = sc.nextLine();
                 System.out.print("Enter item name: ");
                 String itemName = sc.nextLine();
-                System.out.print("Enter item descrption: ");
+                System.out.print("Enter item description: ");
                 String itemDescrip = sc.nextLine();
                 System.out.print("Enter starting price: ");
                 String startPrice = sc.nextLine();
@@ -77,43 +61,53 @@ public class Client {
                 String auctDuration = sc.nextLine();
 
                 String liMessage = "LIST_ITEM | " + rqNumber + " | " + itemName + " | " + itemDescrip + " | " + startPrice + " | " + auctDuration;
-                byte[] buf = liMessage.getBytes();
+                sendUDPMessage(liMessage, ds, ip);
 
-                DatagramPacket sendDatagramPacket = new DatagramPacket(buf, buf.length, ip, SERVER_PORT);
-                ds.send(sendDatagramPacket);
-                System.out.println("Sent LIST_ITEM request: " + liMessage);
+            } else if (cmd.equalsIgnoreCase("BID")) {
+                System.out.print("Enter RQ#: ");
+                String rqNumber = sc.nextLine();
+                System.out.print("Enter item name: ");
+                String itemName = sc.nextLine();
+                System.out.print("Enter bid amount: ");
+                String bidAmount = sc.nextLine();
+                System.out.print("Enter your name: ");
+                String bidderName = sc.nextLine();
 
+                String bidMessage = "BID | " + rqNumber + " | " + itemName + " | " + bidAmount + " | " + bidderName;
+                sendUDPMessage(bidMessage, ds, ip);
+
+                // Receive server response
                 byte[] bufferReceiver = new byte[65535];
                 DatagramPacket receiveDatagramPacket = new DatagramPacket(bufferReceiver, bufferReceiver.length);
                 ds.receive(receiveDatagramPacket);
 
                 String response = data(bufferReceiver).toString();
                 System.out.println("Server response: " + response);
-
             }
 
-            }
-            
-            ds.close();
         }
 
-        public static StringBuilder data(byte[] arr){
-
-            if(arr==null) return null;
-            StringBuilder ret = new StringBuilder();
-            int i =0;
-    
-            while(i < arr.length && arr[i] != 0){
-    
-                ret.append((char)arr[i]);
-                i++;
-    
-            }
-    
-            return ret;
-    
-        }
+        ds.close();
     }
 
-    
+    // ✅ Method to send UDP messages
+    private static void sendUDPMessage(String message, DatagramSocket ds, InetAddress ip) throws IOException {
+        byte[] buf = message.getBytes();
+        DatagramPacket sendDatagramPacket = new DatagramPacket(buf, buf.length, ip, SERVER_PORT);
+        ds.send(sendDatagramPacket);
+        System.out.println("Sent: " + message);
+    }
 
+    public static StringBuilder data(byte[] arr) {
+        if (arr == null) return null;
+        StringBuilder ret = new StringBuilder();
+        int i = 0;
+
+        while (i < arr.length && arr[i] != 0) {
+            ret.append((char) arr[i]);
+            i++;
+        }
+
+        return ret;
+    }
+}
