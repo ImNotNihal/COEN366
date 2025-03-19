@@ -173,6 +173,27 @@ public class Server {
                 System.out.println("Invalid command received.");
             }
 
+            // checks if item available then subscribes client to auction, or unsubscribe from updates
+
+            else if (command.equals("SUBSCRIBE")) {
+                    String itemName = parts[2];
+                if (!currentAuctions.containsKey(itemName)) {
+                    String response = "SUBSCRIPTION-DENIED | " + rqNumber + " | Item not found";
+                    sendUDPMessage(response, clientAddress, clientPort, ds);
+                System.out.println("Subscription denied: No auction for " + itemName);
+            } else {
+                SubscriptionManager.subscribe(itemName, registeredClients.get(parts[2]));
+                    String response = "SUBSCRIBED | " + rqNumber;
+                    sendUDPMessage(response, clientAddress, clientPort, ds);
+                System.out.println("Subscription successful: " + parts[2] + " subscribed to " + itemName);
+            }
+            } else if (command.equals("DE-SUBSCRIBE")) {
+                    String itemName = parts[2];
+                SubscriptionManager.unsubscribe(itemName, registeredClients.get(parts[2]));
+                System.out.println("Unsubscribed: " + parts[2] + " from " + itemName);
+        }
+
+
             receive = new byte[65535];
         }
     }
