@@ -83,6 +83,31 @@ public class Client {
 
                 String response = data(bufferReceiver).toString();
                 System.out.println("Server response: " + response);
+
+            } else if(cmd.equalsIgnoreCase("SUBSCRIBE")){
+
+                System.out.print("Enter RQ#: ");
+                String rqNumber = sc.nextLine();
+                System.out.print("Enter item name: ");
+                String itemName = sc.nextLine();
+                System.out.print("Enter your name: ");
+                String clientName = sc.nextLine();
+
+                String subMessage = "SUBSCRIBE | " + rqNumber + " | " + itemName + " | " + clientName;
+                sendUDPMessage(subMessage, ds, ip);
+
+            } else if(cmd.equalsIgnoreCase("DE-SUBSCRIBE")){
+
+                System.out.print("Enter RQ#: ");
+                String rqNumber = sc.nextLine();
+                System.out.print("Enter item name: ");
+                String itemName = sc.nextLine();
+                System.out.print("Enter your name: ");
+                String clientName = sc.nextLine();
+
+                String desubMessage = "DE-SUBSCRIBE | " + rqNumber + " | " + itemName + " | " + clientName;
+                sendUDPMessage(desubMessage, ds, ip);
+
             }
 
         }

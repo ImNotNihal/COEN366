@@ -7,52 +7,16 @@ import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Map;
 
+
 public class Server {
     private static final int PORT = 5000;
     private static Map<String, ClientInfo> registeredClients = new HashMap<>();
     private static Map<String, AuctionItem> currentAuctions = new HashMap<>();
 
-    static class ClientInfo {
-        String name;
-        String role;
-        String ipAddress;
-        int udpPort;
-        int tcpPort;
-
-        ClientInfo(String name, String role, String ipAddress, int udpPort, int tcpPort) {
-            this.name = name;
-            this.role = role;
-            this.ipAddress = ipAddress;
-            this.udpPort = udpPort;
-            this.tcpPort = tcpPort;
-        }
-    }
-
-    static class AuctionItem {
-        String itemName;
-        String itemDescrip;
-        double startPrice;
-        int auctDuration;
-        double highestBid;
-        String highestBidder;
-        long endTime;
-
-        AuctionItem(String itemName, String itemDescrip, double startPrice, int auctDuration) {
-            this.itemName = itemName;
-            this.itemDescrip = itemDescrip;
-            this.startPrice = startPrice;
-            this.auctDuration = auctDuration;
-            this.highestBid = startPrice;
-            this.highestBidder = "None";
-            this.endTime = System.currentTimeMillis() + (auctDuration * 1000L); // Convert seconds to milliseconds
-        }
-    }
-
     public static void main(String[] args) throws IOException {
         DatagramSocket ds = new DatagramSocket(PORT);
         byte[] receive = new byte[65535];
         DatagramPacket receiveDatagramPacket = null;
-
         System.out.println("Server is running...");
 
         while (true) {
@@ -115,7 +79,7 @@ public class Server {
                     sendUDPMessage(response, clientAddress, clientPort, ds);
                     System.out.println("Item already listed: " + itemName);
                 } else {
-                    currentAuctions.put(itemName, new AuctionItem(itemName, itemDescrip, startPrice, auctDuration));
+                    currentAuctions.put(itemName, new AuctionItem(itemName, itemDescrip, startPrice, auctDuration, parts[2], rqNumber));
                     String response = "ITEM_LISTED | " + rqNumber;
                     sendUDPMessage(response, clientAddress, clientPort, ds);
                     System.out.println("Item listed: " + itemName);
@@ -165,6 +129,7 @@ public class Server {
 
                 auction.highestBid = bidAmount;
                 auction.highestBidder = bidderName;
+                auction.hasReceivedBid = true;
                 currentAuctions.put(itemName, auction);
 
                 ServerLog.log("Bid received: " + bidderName + " bid $" + bidAmount + " for " + itemName);
@@ -174,29 +139,26 @@ public class Server {
                 System.out.println("Bid accepted: " + bidderName + " bid $" + bidAmount + " for " + itemName);
 
                 broadcastBidUpdate(itemName, auction, ds);
-            } else {
-                System.out.println("Invalid command received.");
-            }
-
-            // checks if item available then subscribes client to auction, or unsubscribe from updates
-
-            else if (command.equals("SUBSCRIBE")) {
+            
+            } else if (command.equals("SUBSCRIBE")) { // checks if item available then subscribes client to auction, or unsubscribe from updates
                     String itemName = parts[2];
                 if (!currentAuctions.containsKey(itemName)) {
                     String response = "SUBSCRIPTION-DENIED | " + rqNumber + " | Item not found";
                     sendUDPMessage(response, clientAddress, clientPort, ds);
                 System.out.println("Subscription denied: No auction for " + itemName);
             } else {
-                SubscriptionManager.subscribe(itemName, registeredClients.get(parts[2]));
+                SubscriptionManager.subscribe(itemName, registeredClients.get(parts[4]));
                     String response = "SUBSCRIBED | " + rqNumber;
                     sendUDPMessage(response, clientAddress, clientPort, ds);
-                System.out.println("Subscription successful: " + parts[2] + " subscribed to " + itemName);
+                System.out.println("Subscription successful: " + parts[4] + " subscribed to " + itemName);
             }
             } else if (command.equals("DE-SUBSCRIBE")) {
                     String itemName = parts[2];
-                SubscriptionManager.unsubscribe(itemName, registeredClients.get(parts[2]));
-                System.out.println("Unsubscribed: " + parts[2] + " from " + itemName);
-        }
+                SubscriptionManager.unsubscribe(itemName, registeredClients.get(parts[4]));
+                System.out.println("Unsubscribed: " + parts[4] + " from " + itemName);
+            } else {
+                System.out.println("Invalid command received.");
+            }
 
 
             receive = new byte[65535];
