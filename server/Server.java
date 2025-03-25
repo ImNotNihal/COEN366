@@ -1,12 +1,13 @@
 // Server is running, gets the message from the client, takes the IP/Path address of the client and suggests that the client has been registered or not
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
-
 
 public class Server {
     private static final int PORT = 5000;
@@ -16,8 +17,13 @@ public class Server {
     public static void main(String[] args) throws IOException {
         DatagramSocket ds = new DatagramSocket(PORT);
         byte[] receive = new byte[65535];
-        DatagramPacket receiveDatagramPacket = null;
+        DatagramPacket receiveDatagramPacket;
+
         System.out.println("Server is running...");
+
+        // auction monitor, part 2.6
+        Thread monitor = new Thread(new AuctionMonitor(currentAuctions, registeredClients));
+        monitor.start();
 
         while (true) {
             receiveDatagramPacket = new DatagramPacket(receive, receive.length);
@@ -26,7 +32,6 @@ public class Server {
             String message = data(receive).toString();
             InetAddress clientAddress = receiveDatagramPacket.getAddress();
             int clientPort = receiveDatagramPacket.getPort();
-
             System.out.println("Received message: " + message);
 
             String[] parts = message.split(" \\| ");
@@ -50,15 +55,14 @@ public class Server {
                     sendUDPMessage(response, clientAddress, clientPort, ds);
                     System.out.println("Registered: " + name);
                 }
+
             } else if (command.equals("DE-REGISTER")) {
                 String name = parts[2];
                 if (registeredClients.containsKey(name)) {
                     registeredClients.remove(name);
                     System.out.println("Deregistered: " + name);
                 } else {
-                    System.out.println("Attempted to deregister non-existent user: " + name);
-                }
-
+                    System.out.println("Attempted to deregister non-existent user: " + name);}
             } else if (command.equals("LIST_ITEM")) {
                 String itemName = parts[2];
                 String itemDescrip = parts[3];
@@ -83,36 +87,27 @@ public class Server {
                     String response = "ITEM_LISTED | " + rqNumber;
                     sendUDPMessage(response, clientAddress, clientPort, ds);
                     System.out.println("Item listed: " + itemName);
-
-                    
-                    // Notify all subscribed clients about the new auction
                     SubscriptionManager.notifySubscribers(itemName, currentAuctions.get(itemName), ds);
-
                 }
 
             } else if (command.equals("BID")) {
                 String itemName = parts[2];
                 double bidAmount;
                 String bidderName = parts[4];
-
                 try {
                     bidAmount = Double.parseDouble(parts[3]);
                 } catch (NumberFormatException e) {
                     String response = "BID_REJECTED | " + rqNumber + " | Invalid bid amount";
                     sendUDPMessage(response, clientAddress, clientPort, ds);
                     System.out.println("Invalid bid amount received: " + message);
-                    continue;
-                }
-
+                    continue;}
                 if (!currentAuctions.containsKey(itemName)) {
                     String response = "BID_REJECTED | " + rqNumber + " | No active auction for this item";
                     sendUDPMessage(response, clientAddress, clientPort, ds);
                     System.out.println("Bid rejected: No auction for item " + itemName);
-                    continue;
-                }
+                    continue;}
 
                 AuctionItem auction = currentAuctions.get(itemName);
-
                 if (System.currentTimeMillis() > auction.endTime) {
                     String response = "BID_REJECTED | " + rqNumber + " | Auction has ended";
                     sendUDPMessage(response, clientAddress, clientPort, ds);
@@ -139,27 +134,27 @@ public class Server {
                 System.out.println("Bid accepted: " + bidderName + " bid $" + bidAmount + " for " + itemName);
 
                 broadcastBidUpdate(itemName, auction, ds);
-            
-            } else if (command.equals("SUBSCRIBE")) { // checks if item available then subscribes client to auction, or unsubscribe from updates
-                    String itemName = parts[2];
+
+            } else if (command.equals("SUBSCRIBE")) {
+                String itemName = parts[2];
                 if (!currentAuctions.containsKey(itemName)) {
                     String response = "SUBSCRIPTION-DENIED | " + rqNumber + " | Item not found";
                     sendUDPMessage(response, clientAddress, clientPort, ds);
-                System.out.println("Subscription denied: No auction for " + itemName);
-            } else {
-                SubscriptionManager.subscribe(itemName, registeredClients.get(parts[4]));
+                    System.out.println("Subscription denied: No auction for " + itemName);
+                } else {
+                    SubscriptionManager.subscribe(itemName, registeredClients.get(parts[4]));
                     String response = "SUBSCRIBED | " + rqNumber;
                     sendUDPMessage(response, clientAddress, clientPort, ds);
-                System.out.println("Subscription successful: " + parts[4] + " subscribed to " + itemName);
-            }
+                    System.out.println("Subscription successful: " + parts[4] + " subscribed to " + itemName);
+                }
+
             } else if (command.equals("DE-SUBSCRIBE")) {
-                    String itemName = parts[2];
+                String itemName = parts[2];
                 SubscriptionManager.unsubscribe(itemName, registeredClients.get(parts[4]));
                 System.out.println("Unsubscribed: " + parts[4] + " from " + itemName);
             } else {
                 System.out.println("Invalid command received.");
             }
-
 
             receive = new byte[65535];
         }
@@ -174,7 +169,6 @@ public class Server {
         String message = "BID_UPDATE | " + System.currentTimeMillis() + " | " + itemName + " | "
                 + auction.highestBid + " | " + auction.highestBidder + " | " + (auction.endTime - System.currentTimeMillis());
 
-
         for (ClientInfo client : registeredClients.values()) {
             try {
                 InetAddress clientAddress = InetAddress.getByName(client.ipAddress);
@@ -183,6 +177,7 @@ public class Server {
                 System.out.println("Failed to send bid update to " + client.name);
             }
         }
+
         System.out.println("Bid update broadcasted for item: " + itemName);
     }
 
