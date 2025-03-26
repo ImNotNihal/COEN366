@@ -15,6 +15,6 @@ public class AuctionItem {
         this.endTime = System.currentTimeMillis() + (auctDuration * 1000L); // Convert seconds to milliseconds
         this.sellerName = sellerName;
         this.sellerRqNumber = sellerRqNumber;
-        this.hasReceivedBid = hasReceivedBid;
+        this.hasReceivedBid = false;
     }
 }

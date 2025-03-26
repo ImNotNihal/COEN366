@@ -62,7 +62,9 @@ public class Server {
                     registeredClients.remove(name);
                     System.out.println("Deregistered: " + name);
                 } else {
-                    System.out.println("Attempted to deregister non-existent user: " + name);}
+                    System.out.println("Attempted to deregister non-existent user: " + name);
+                }
+
             } else if (command.equals("LIST_ITEM")) {
                 String itemName = parts[2];
                 String itemDescrip = parts[3];
@@ -78,19 +80,32 @@ public class Server {
                     System.out.println("Invalid LIST_ITEM request: " + message);
                     continue;
                 }
+
                 if (currentAuctions.containsKey(itemName)) {
                     String response = "LIST-DENIED | " + rqNumber + " | Item already listed";
                     sendUDPMessage(response, clientAddress, clientPort, ds);
                     System.out.println("Item already listed: " + itemName);
                 } else {
-                    currentAuctions.put(itemName, new AuctionItem(itemName, itemDescrip, startPrice, auctDuration, parts[2], rqNumber));
+                    // Use correct 6-argument constructor (Task 2.7)
+                    AuctionItem auctionItem = new AuctionItem(
+                            itemName,
+                            itemDescrip,
+                            startPrice,
+                            auctDuration,
+                            parts[6],     // sellerName (from client LIST_ITEM message)
+                            rqNumber      // sellerRqNumber
+                    );
+                    currentAuctions.put(itemName, auctionItem);
+
                     String response = "ITEM_LISTED | " + rqNumber;
                     sendUDPMessage(response, clientAddress, clientPort, ds);
                     System.out.println("Item listed: " + itemName);
-                    SubscriptionManager.notifySubscribers(itemName, currentAuctions.get(itemName), ds);
+                    SubscriptionManager.notifySubscribers(itemName, auctionItem, ds);
                 }
 
-            } else if (command.equals("BID")) {
+
+
+        } else if (command.equals("BID")) {
                 String itemName = parts[2];
                 double bidAmount;
                 String bidderName = parts[4];
@@ -100,12 +115,14 @@ public class Server {
                     String response = "BID_REJECTED | " + rqNumber + " | Invalid bid amount";
                     sendUDPMessage(response, clientAddress, clientPort, ds);
                     System.out.println("Invalid bid amount received: " + message);
-                    continue;}
+                    continue;
+                }
                 if (!currentAuctions.containsKey(itemName)) {
                     String response = "BID_REJECTED | " + rqNumber + " | No active auction for this item";
                     sendUDPMessage(response, clientAddress, clientPort, ds);
                     System.out.println("Bid rejected: No auction for item " + itemName);
-                    continue;}
+                    continue;
+                }
 
                 AuctionItem auction = currentAuctions.get(itemName);
                 if (System.currentTimeMillis() > auction.endTime) {

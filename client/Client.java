@@ -59,9 +59,12 @@ public class Client {
                 String startPrice = sc.nextLine();
                 System.out.print("Enter duration of auction (sec): ");
                 String auctDuration = sc.nextLine();
+                System.out.print("Enter your name: ");  // NEW prompt for seller's name
+                String name = sc.nextLine();
 
-                String liMessage = "LIST_ITEM | " + rqNumber + " | " + itemName + " | " + itemDescrip + " | " + startPrice + " | " + auctDuration;
+                String liMessage = "LIST_ITEM | " + rqNumber + " | " + itemName + " | " + itemDescrip + " | " + startPrice + " | " + auctDuration + " | " + name;
                 sendUDPMessage(liMessage, ds, ip);
+
 
             } else if (cmd.equalsIgnoreCase("BID")) {
                 System.out.print("Enter RQ#: ");

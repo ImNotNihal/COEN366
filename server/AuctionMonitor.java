@@ -22,32 +22,46 @@ public class AuctionMonitor implements Runnable {
                 if (now >= item.endTime) {
                     endedAuctions.add(entry.getKey());
                     handleAuctionClosure(item);
-                }}
+                }
+            }
 
             for (String itemName : endedAuctions) {
                 auctions.remove(itemName);
             }
+
             try {
-                Thread.sleep(1000); 
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 System.out.println("Auction monitor interrupted.");
-            }}}
+            }
+        }
+    }
 
     private void handleAuctionClosure(AuctionItem item) {
         String rqNumber = item.sellerRqNumber;
 
         if (!clients.containsKey(item.sellerName)) return;
         ClientInfo seller = clients.get(item.sellerName);
+
         if (!item.hasReceivedBid || item.highestBidder.equals("None")) {
             sendTCPMessage(seller, "NON_OFFER | " + rqNumber + " | " + item.itemName);
             ServerLog.log("Auction ended with no bids: " + item.itemName);
         } else {
+            // check for missing buyer
+            if (!clients.containsKey(item.highestBidder)) {
+                ServerLog.log("Auction ended but winner not found: " + item.highestBidder);
+                return;
+            }
+
             ClientInfo buyer = clients.get(item.highestBidder);
             String winnerMsg = "WINNER | " + rqNumber + " | " + item.itemName + " | " + item.highestBid + " | " + seller.name;
             sendTCPMessage(buyer, winnerMsg);
             String soldMsg = "SOLD | " + rqNumber + " | " + item.itemName + " | " + item.highestBid + " | " + buyer.name;
             sendTCPMessage(seller, soldMsg);
             ServerLog.log("Auction won: " + buyer.name + " won " + item.itemName + " for $" + item.highestBid);
+
+            // Log for Task 2.7
+            TransactionManager.logTransaction(item.itemName, item.sellerName, item.highestBidder, item.highestBid);
         }
     }
 
