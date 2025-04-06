@@ -18,7 +18,6 @@ public class Client {
         InetAddress ip = InetAddress.getByName(SERVER_ADDRESS);
 
         while (true) {
-
             System.out.print("Enter command (REGISTER, DE-REGISTER, LIST_ITEM, BID, or bye): ");
             String cmd = sc.nextLine();
             if (cmd.equalsIgnoreCase("bye")) {
@@ -34,7 +33,8 @@ public class Client {
                 String role = sc.nextLine();
                 String ipAddress = ip.getHostAddress();
                 int udpPort = ds.getLocalPort();
-                int tcpPort = udpPort + 1;
+                System.out.print("Enter TCP port: "); // manually enter TCP port
+                int tcpPort = Integer.parseInt(sc.nextLine());  //  int tcpPort = udpPort + 1;
 
                 String rMessage = "REGISTER | " + rqNumber + " | " + name + " | " + role + " | " + ipAddress + " | " + udpPort + " | " + tcpPort;
                 sendUDPMessage(rMessage, ds, ip);
@@ -110,11 +110,8 @@ public class Client {
 
                 String desubMessage = "DE-SUBSCRIBE | " + rqNumber + " | " + itemName + " | " + clientName;
                 sendUDPMessage(desubMessage, ds, ip);
-
             }
-
         }
-
         ds.close();
     }
 
@@ -135,7 +132,6 @@ public class Client {
             ret.append((char) arr[i]);
             i++;
         }
-
         return ret;
     }
 }
