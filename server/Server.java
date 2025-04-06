@@ -40,10 +40,18 @@ public class Server {
             System.out.println("Received message: " + message);
 
             String[] parts = message.split(" \\| ");
+            if (parts.length < 2){
+                System.out.println("Invalid message format: " + message);
+                continue;
+            }
             String command = parts[0];
             String rqNumber = parts[1];
 
             if (command.equals("REGISTER")) {
+                if (parts.length < 7){
+                    System.out.println("Invalid register message format: " + message);
+                    continue;
+                }
                 String name = parts[2];
                 String role = parts[3];
                 String ipAddress = parts[4];
@@ -71,6 +79,10 @@ public class Server {
                 }
 
             } else if (command.equals("LIST_ITEM")) {
+                if (parts.length < 6){
+                    System.out.println("Invalid list item message format: " + message);
+                    continue;
+                }
                 String itemName = parts[2];
                 String itemDescrip = parts[3];
                 double startPrice;
@@ -109,6 +121,10 @@ public class Server {
                 }
 
         } else if (command.equals("BID")) {
+            if (parts.length < 5){
+                System.out.println("Invalid bid message format: " + message);
+                continue;
+            }
                 String itemName = parts[2];
                 double bidAmount;
                 String bidderName = parts[4];
@@ -156,6 +172,10 @@ public class Server {
                 broadcastBidUpdate(itemName, auction, ds);
 
             } else if (command.equals("SUBSCRIBE")) {
+                if (parts.length < 5){
+                    System.out.println("Invalid subscribe message format: " + message);
+                    continue;
+                }
                 String itemName = parts[2];
                 if (!currentAuctions.containsKey(itemName)) {
                     String response = "SUBSCRIPTION-DENIED | " + rqNumber + " | Item not found";
@@ -169,6 +189,10 @@ public class Server {
                 }
 
             } else if (command.equals("DE-SUBSCRIBE")) {
+                if (parts.length < 5){
+                    System.out.println("Invalid de-subscribe message format: " + message);
+                    continue;
+                }
                 String itemName = parts[2];
                 SubscriptionManager.unsubscribe(itemName, registeredClients.get(parts[4]));
                 System.out.println("Unsubscribed: " + parts[4] + " from " + itemName);

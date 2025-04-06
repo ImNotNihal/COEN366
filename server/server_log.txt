@@ -1,0 +1,8 @@
+seller not found: ella
+Bid received: jim bid $550.0 for phone
+Auction won: jim won phone for $550.0
+INFORM_Req sent to both parties for phone
+Auction ended with no bids: phone
+Bid received: bob bid $550.0 for phone
+Auction won: bob won phone for $550.0
+INFORM_Req sent to both parties for phone
