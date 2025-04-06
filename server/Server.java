@@ -1,13 +1,12 @@
 // Server is running, gets the message from the client, takes the IP/Path address of the client and suggests that the client has been registered or not
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Server {
     private static final int PORT = 5000;
@@ -23,7 +22,7 @@ public class Server {
 
         // auction monitor, part 2.6
         Map<String, FinalizationSession> sessions = new ConcurrentHashMap<>(); // added for 2.7
-        Thread monitor = new Thread(new AuctionMonitor(currentAuctions, registeredClients));
+        Thread monitor = new Thread(new AuctionMonitor(currentAuctions, registeredClients,sessions));
         monitor.start();
 
         // start message router, part 2.7

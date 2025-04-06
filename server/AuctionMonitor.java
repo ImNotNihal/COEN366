@@ -1,6 +1,8 @@
-import java.net.*;
-import java.io.*;
-import java.util.*;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Map;
 
 public class AuctionMonitor implements Runnable {
     private final Map<String, AuctionItem> auctions;
@@ -20,7 +22,7 @@ public class AuctionMonitor implements Runnable {
     public void run() {
         while (true) {
             long now = System.currentTimeMillis();
-            List<String> endedAuctions = new ArrayList<>();
+            ArrayList<String> endedAuctions = new ArrayList<>();
 
             for (Map.Entry<String, AuctionItem> entry : auctions.entrySet()) {
                 AuctionItem item = entry.getValue();
@@ -45,7 +47,10 @@ public class AuctionMonitor implements Runnable {
     private void handleAuctionClosure(AuctionItem item) {
         String rqNumber = item.sellerRqNumber;
 
-        if (!clients.containsKey(item.sellerName)) return;
+        if (!clients.containsKey(item.sellerName)){
+            ServerLog.log("seller not found: " + item.sellerName);
+            return;
+        } 
         ClientInfo seller = clients.get(item.sellerName);
 
         if (!item.hasReceivedBid || item.highestBidder.equals("None")) {
