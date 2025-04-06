@@ -5,10 +5,15 @@ import java.util.*;
 public class AuctionMonitor implements Runnable {
     private final Map<String, AuctionItem> auctions;
     private final Map<String, ClientInfo> clients;
+    private final Map<String, FinalizationSession> sessions;  // added for 2.7
 
-    public AuctionMonitor(Map<String, AuctionItem> auctions, Map<String, ClientInfo> clients) {
+    public AuctionMonitor(Map<String, AuctionItem> auctions, 
+                          Map<String, ClientInfo> clients, 
+                          Map<String, FinalizationSession> sessions) // added for 2.7
+    {
         this.auctions = auctions;
         this.clients = clients;
+        this.sessions = sessions;  // added for 2.7
     }
 
     @Override
@@ -62,9 +67,23 @@ public class AuctionMonitor implements Runnable {
 
             // Log for Task 2.7
             TransactionManager.logTransaction(item.itemName, item.sellerName, item.highestBidder, item.highestBid);
+
+            // added for 2.7
+            // generate a new RQ# for transaction finalization 
+            String finalRq = "FINAL_" + System.currentTimeMillis();
+
+            // create and register session
+            FinalizationSession session = new FinalizationSession(finalRq, item.itemName, item.highestBid);
+            sessions.put(finalRq, session);
+
+            // send INFORM_req to both buyer and seller via TCP
+            sendTCPMessage(buyer, "INFORM_Req " + finalRq + " " + item.itemName + " " + item.highestBid);
+            sendTCPMessage(seller, "INFORM_Req " + finalRq + " " + item.itemName + " " + item.highestBid);
+            ServerLog.log("INFORM_Req sent to both parties for " + item.itemName);
+            // added until here for 2.7
         }
     }
-
+    
     private void sendTCPMessage(ClientInfo client, String message) {
         try (Socket socket = new Socket(client.ipAddress, client.tcpPort);
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
