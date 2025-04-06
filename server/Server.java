@@ -22,9 +22,15 @@ public class Server {
         System.out.println("Server is running...");
 
         // auction monitor, part 2.6
+        Map<String, FinalizationSession> sessions = new ConcurrentHashMap<>(); // added for 2.7
         Thread monitor = new Thread(new AuctionMonitor(currentAuctions, registeredClients));
         monitor.start();
 
+        // start message router, part 2.7
+        TransactionFinalizer finalizer = new TransactionFinalizer();
+        Thread router = new Thread(new MessageRouter(5002, sessions, finalizer));
+        router.start();
+        
         while (true) {
             receiveDatagramPacket = new DatagramPacket(receive, receive.length);
             ds.receive(receiveDatagramPacket);
@@ -103,8 +109,6 @@ public class Server {
                     SubscriptionManager.notifySubscribers(itemName, auctionItem, ds);
                 }
 
-
-
         } else if (command.equals("BID")) {
                 String itemName = parts[2];
                 double bidAmount;
@@ -172,7 +176,6 @@ public class Server {
             } else {
                 System.out.println("Invalid command received.");
             }
-
             receive = new byte[65535];
         }
     }
