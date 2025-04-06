@@ -16,11 +16,10 @@ public class TransactionFinalizer {
             System.out.println("Sending Shipping_Info to seller: " + shipMsg);
             send(session.sellerSocket, shipMsg);
             ServerLog.log("Shipping_Info sent to seller for " + session.itemName);
-
             System.out.println("Waiting for SellerClient to read shipping info...");
 
             try {
-                Thread.sleep(10000);
+                Thread.sleep(5000);
             } catch (InterruptedException ignored) {}
 
             System.out.println("Closing buyer socket after delay.");
