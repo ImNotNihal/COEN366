@@ -8,23 +8,42 @@ public class TransactionFinalizer {
             if (!isValid(session.buyerCC) || !isValid(session.sellerCC)) {
                 send(session.buyerSocket, "CANCEL " + session.rqNumber + " Payment failed");
                 send(session.sellerSocket, "CANCEL " + session.rqNumber + " Payment failed");
-                ServerLog.log("Transaction failed for RQ# " + session.rqNumber);
+                ServerLog.log("Transaction failed for RQ# " + session.rqNumber + ": invalid credit card info.");
                 return;
             }
 
+            // ✅ Simulate payment processing
+            double total = session.finalPrice;
+            double fee = total * 0.10;
+            double credited = total - fee;
+
+            ServerLog.log("Charged " + session.buyerName + "'s card for $" + total);
+            ServerLog.log("Credited " + session.sellerName + "'s card with $" + credited + " (after $"+fee+" fee)");
+
+            // ✅ Send shipping info to seller
             String shipMsg = "Shipping_Info " + session.rqNumber + " " + session.buyerName + " " + session.buyerAddress;
             System.out.println("Sending Shipping_Info to seller: " + shipMsg);
             send(session.sellerSocket, shipMsg);
             ServerLog.log("Shipping_Info sent to seller for " + session.itemName);
-            System.out.println("Waiting for SellerClient to read shipping info...");
 
-            try {
-                Thread.sleep(5000);
-            } catch (InterruptedException ignored) {}
+            // ✅ Wait for seller ACK
+            System.out.println("Waiting for Seller ACK...");
+            BufferedReader in = new BufferedReader(new InputStreamReader(session.sellerSocket.getInputStream()));
+            String ack = in.readLine();
 
-            System.out.println("Closing buyer socket after delay.");
-            session.buyerSocket.close();
+            if (ack != null && ack.startsWith("ACK " + session.rqNumber)) {
+                System.out.println("Received ACK from Seller.");
+                ServerLog.log("ACK received from seller for RQ# " + session.rqNumber);
+            } else {
+                System.out.println("Did not receive valid ACK. Proceeding anyway.");
+                ServerLog.log("Missing or invalid ACK from seller for RQ# " + session.rqNumber);
+            }
 
+            // ✅ Close sockets
+            session.buyerSocket.close();  // Server closes buyer socket
+            session.sellerSocket.close(); // Seller may also close, but safe here
+
+            // ✅ Final transaction log
             TransactionManager.logTransaction(
                     session.itemName,
                     session.sellerName,
@@ -34,6 +53,7 @@ public class TransactionFinalizer {
 
         } catch (Exception e) {
             System.out.println("TransactionFinalizer error: " + e.getMessage());
+            ServerLog.log("TransactionFinalizer failed for RQ# " + session.rqNumber + ": " + e.getMessage());
         }
     }
 
@@ -47,6 +67,7 @@ public class TransactionFinalizer {
             System.out.println("Error sending: " + message + " → " + e.getMessage());
         }
     }
+
     private boolean isValid(String cc) {
         return cc != null && cc.length() >= 8;
     }

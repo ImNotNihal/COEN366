@@ -1,12 +1,21 @@
 public class ClientInfo {
-    String name, role, ipAddress;
-    int udpPort, tcpPort;
+    public final String name;
+    public final String role;
+    public final String ipAddress;
+    public final int udpPort;
+    public final int tcpPort;
 
-    ClientInfo(String name, String role, String ipAddress, int udpPort, int tcpPort) {
+    public ClientInfo(String name, String role, String ipAddress, int udpPort, int tcpPort) {
         this.name = name;
         this.role = role;
         this.ipAddress = ipAddress;
         this.udpPort = udpPort;
         this.tcpPort = tcpPort;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Client[name=%s, role=%s, ip=%s, udp=%d, tcp=%d]",
+                name, role, ipAddress, udpPort, tcpPort);
     }
 }

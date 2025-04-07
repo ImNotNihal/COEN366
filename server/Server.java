@@ -1,5 +1,3 @@
-// Server is running, gets the message from the client, takes the IP/Path address of the client and suggests that the client has been registered or not
-
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -20,16 +18,16 @@ public class Server {
 
         System.out.println("Server is running...");
 
-        // auction monitor, part 2.6
-        Map<String, FinalizationSession> sessions = new ConcurrentHashMap<>(); // added for 2.7
-        Thread monitor = new Thread(new AuctionMonitor(currentAuctions, registeredClients,sessions));
+        // Auction monitor (Task 2.6)
+        Map<String, FinalizationSession> sessions = new ConcurrentHashMap<>();
+        Thread monitor = new Thread(new AuctionMonitor(currentAuctions, registeredClients, sessions));
         monitor.start();
 
-        // start message router, part 2.7
+        // Message router (Task 2.7)
         TransactionFinalizer finalizer = new TransactionFinalizer();
         Thread router = new Thread(new MessageRouter(5002, sessions, finalizer));
         router.start();
-        
+
         while (true) {
             receiveDatagramPacket = new DatagramPacket(receive, receive.length);
             ds.receive(receiveDatagramPacket);
@@ -40,18 +38,20 @@ public class Server {
             System.out.println("Received message: " + message);
 
             String[] parts = message.split(" \\| ");
-            if (parts.length < 2){
+            if (parts.length < 2) {
                 System.out.println("Invalid message format: " + message);
                 continue;
             }
+
             String command = parts[0];
             String rqNumber = parts[1];
 
             if (command.equals("REGISTER")) {
-                if (parts.length < 7){
+                if (parts.length < 7) {
                     System.out.println("Invalid register message format: " + message);
                     continue;
                 }
+
                 String name = parts[2];
                 String role = parts[3];
                 String ipAddress = parts[4];
@@ -79,10 +79,11 @@ public class Server {
                 }
 
             } else if (command.equals("LIST_ITEM")) {
-                if (parts.length < 6){
+                if (parts.length < 7) {
                     System.out.println("Invalid list item message format: " + message);
                     continue;
                 }
+
                 String itemName = parts[2];
                 String itemDescrip = parts[3];
                 double startPrice;
@@ -103,14 +104,13 @@ public class Server {
                     sendUDPMessage(response, clientAddress, clientPort, ds);
                     System.out.println("Item already listed: " + itemName);
                 } else {
-                    // Use correct 6-argument constructor (Task 2.7)
                     AuctionItem auctionItem = new AuctionItem(
                             itemName,
                             itemDescrip,
                             startPrice,
                             auctDuration,
-                            parts[6],     // sellerName (from client LIST_ITEM message)
-                            rqNumber      // sellerRqNumber
+                            parts[6], // sellerName
+                            rqNumber  // sellerRqNumber
                     );
                     currentAuctions.put(itemName, auctionItem);
 
@@ -120,14 +120,16 @@ public class Server {
                     SubscriptionManager.notifySubscribers(itemName, auctionItem, ds);
                 }
 
-        } else if (command.equals("BID")) {
-            if (parts.length < 5){
-                System.out.println("Invalid bid message format: " + message);
-                continue;
-            }
+            } else if (command.equals("BID")) {
+                if (parts.length < 5) {
+                    System.out.println("Invalid bid message format: " + message);
+                    continue;
+                }
+
                 String itemName = parts[2];
                 double bidAmount;
                 String bidderName = parts[4];
+
                 try {
                     bidAmount = Double.parseDouble(parts[3]);
                 } catch (NumberFormatException e) {
@@ -136,6 +138,7 @@ public class Server {
                     System.out.println("Invalid bid amount received: " + message);
                     continue;
                 }
+
                 if (!currentAuctions.containsKey(itemName)) {
                     String response = "BID_REJECTED | " + rqNumber + " | No active auction for this item";
                     sendUDPMessage(response, clientAddress, clientPort, ds);
@@ -164,7 +167,6 @@ public class Server {
                 currentAuctions.put(itemName, auction);
 
                 ServerLog.log("Bid received: " + bidderName + " bid $" + bidAmount + " for " + itemName);
-
                 String response = "BID_ACCEPTED | " + rqNumber;
                 sendUDPMessage(response, clientAddress, clientPort, ds);
                 System.out.println("Bid accepted: " + bidderName + " bid $" + bidAmount + " for " + itemName);
@@ -172,33 +174,40 @@ public class Server {
                 broadcastBidUpdate(itemName, auction, ds);
 
             } else if (command.equals("SUBSCRIBE")) {
-                if (parts.length < 5){
+                if (parts.length < 4) {
                     System.out.println("Invalid subscribe message format: " + message);
                     continue;
                 }
+
                 String itemName = parts[2];
+                String clientName = parts[3];
+
                 if (!currentAuctions.containsKey(itemName)) {
                     String response = "SUBSCRIPTION-DENIED | " + rqNumber + " | Item not found";
                     sendUDPMessage(response, clientAddress, clientPort, ds);
                     System.out.println("Subscription denied: No auction for " + itemName);
                 } else {
-                    SubscriptionManager.subscribe(itemName, registeredClients.get(parts[4]));
+                    SubscriptionManager.subscribe(itemName, registeredClients.get(clientName));
                     String response = "SUBSCRIBED | " + rqNumber;
                     sendUDPMessage(response, clientAddress, clientPort, ds);
-                    System.out.println("Subscription successful: " + parts[4] + " subscribed to " + itemName);
+                    System.out.println("Subscription successful: " + clientName + " subscribed to " + itemName);
                 }
 
             } else if (command.equals("DE-SUBSCRIBE")) {
-                if (parts.length < 5){
+                if (parts.length < 4) {
                     System.out.println("Invalid de-subscribe message format: " + message);
                     continue;
                 }
+
                 String itemName = parts[2];
-                SubscriptionManager.unsubscribe(itemName, registeredClients.get(parts[4]));
-                System.out.println("Unsubscribed: " + parts[4] + " from " + itemName);
+                String clientName = parts[3];
+                SubscriptionManager.unsubscribe(itemName, registeredClients.get(clientName));
+                System.out.println("Unsubscribed: " + clientName + " from " + itemName);
+
             } else {
                 System.out.println("Invalid command received.");
             }
+
             receive = new byte[65535];
         }
     }

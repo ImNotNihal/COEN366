@@ -46,6 +46,16 @@ public class BuyerClient {
                 out.println(response);
                 out.flush();
                 ActivityLog.log("Sent: " + response);
+
+                // ✅ You may optionally wait for a confirmation or CANCEL, but the server closes this socket
+                System.out.println("Waiting for final server response (if any)...");
+                String serverResponse = in.readLine();
+                if (serverResponse != null) {
+                    System.out.println("Server response: " + serverResponse);
+                    ActivityLog.log("Received: " + serverResponse);
+                } else {
+                    System.out.println("No final message received from server.");
+                }
             }
 
         } catch (IOException e) {

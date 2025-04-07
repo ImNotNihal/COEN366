@@ -47,13 +47,19 @@ public class SellerClient {
                 out.flush();
                 ActivityLog.log("Sent: " + response);
 
-                // Wait for Shipping_Info
+                // ✅ Wait for Shipping_Info
                 System.out.println("Waiting for Shipping_Info...");
                 String shippingInfo = in.readLine();
 
-                if (shippingInfo != null) {
+                if (shippingInfo != null && shippingInfo.startsWith("Shipping_Info")) {
                     ActivityLog.log("Received: " + shippingInfo);
                     System.out.println("Shipping Info: " + shippingInfo);
+
+                    // ✅ Send acknowledgment back to server
+                    String ack = "ACK " + rqNumber;
+                    out.println(ack);
+                    out.flush();
+                    ActivityLog.log("Sent: " + ack);
                 } else {
                     System.out.println("No Shipping_Info received. Server may have closed connection.");
                 }

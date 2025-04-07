@@ -1,11 +1,7 @@
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.io.IOException;
-import java.io.BufferedReader;
 import java.util.Map;
-
 
 public class MessageRouter implements Runnable {
     private final int tcpPort;
@@ -22,7 +18,6 @@ public class MessageRouter implements Runnable {
     public void run() {
         try (ServerSocket serverSocket = new ServerSocket(tcpPort)) {
             System.out.println("MessageRouter listening on TCP port " + tcpPort);
-
             while (true) {
                 Socket socket = serverSocket.accept();
                 new Thread(() -> handleMessage(socket)).start();
@@ -40,9 +35,17 @@ public class MessageRouter implements Runnable {
             String msg = in.readLine();
             ServerLog.log("Router received: " + msg);
 
-            if (!msg.startsWith("INFORM_Res")) return;
+            if (msg == null || !msg.startsWith("INFORM_Res")) {
+                out.println("CANCEL UNKNOWN Invalid message format");
+                return;
+            }
 
             String[] parts = msg.split(" ", 6);
+            if (parts.length < 6) {
+                out.println("CANCEL UNKNOWN Incomplete INFORM_Res");
+                return;
+            }
+
             String rq = parts[1];
             String name = parts[2];
             String cc = parts[3];
@@ -63,6 +66,7 @@ public class MessageRouter implements Runnable {
                     session.buyerAddress = address;
                     session.buyerSocket = socket;
                     session.buyerReady = true;
+                    System.out.println("Buyer INFORM_Res stored for RQ#: " + rq);
                 } else if (!session.sellerReady && session.sellerName == null) {
                     session.sellerName = name;
                     session.sellerCC = cc;
@@ -70,12 +74,15 @@ public class MessageRouter implements Runnable {
                     session.sellerAddress = address;
                     session.sellerSocket = socket;
                     session.sellerReady = true;
+                    System.out.println("Seller INFORM_Res stored for RQ#: " + rq);
                 } else {
                     out.println("CANCEL " + rq + " Unexpected duplicate or extra response");
+                    socket.close();
                     return;
                 }
 
                 if (session.isReady()) {
+                    System.out.println("Both buyer and seller are ready. Starting finalization.");
                     finalizer.process(session);
                 }
             }
