@@ -64,9 +64,9 @@ public class AuctionMonitor implements Runnable {
             }
 
             ClientInfo buyer = clients.get(item.highestBidder);
-            String winnerMsg = "WINNER | " + rqNumber + " | " + item.itemName + " | " + item.highestBid + " | " + seller.name;
+            String winnerMsg = "WINNER | " + rqNumber + " | " + item.itemName + " | " + item.highestBid + " | " + buyer.name;
             sendTCPMessage(buyer, winnerMsg);
-            String soldMsg = "SOLD | " + rqNumber + " | " + item.itemName + " | " + item.highestBid + " | " + buyer.name;
+            String soldMsg = "SOLD | " + rqNumber + " | " + item.itemName + " | " + item.highestBid + " | " + seller.name;
             sendTCPMessage(seller, soldMsg);
             ServerLog.log("Auction won: " + buyer.name + " won " + item.itemName + " for $" + item.highestBid);
 
